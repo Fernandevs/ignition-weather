@@ -1,35 +1,244 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from 'react';
 
-function App() {
-  const [count, setCount] = useState(0)
+import axios from 'axios';
+import { TbTemperatureCelsius } from 'react-icons/tb';
+import { ImSpinner8 } from 'react-icons/im';
+import {
+  IoMdSunny,
+  IoMdRainy,
+  IoMdCloudy,
+  IoMdSnow,
+  IoMdThunderstorm,
+  IoMdSearch,
+} from 'react-icons/io';
+import {
+  BsCloudHaze2Fill,
+  BsCloudDrizzleFill,
+  BsEye,
+  BsWater,
+  BsThermometer,
+  BsWind
+} from 'react-icons/bs';
+
+const API_KEY = '1fa3b3e023ae3dcbf7ac3c4bcccbf2a8';
+
+const App = () => {
+  const [data, setData] = useState(null);
+  const [location, setLocation] = useState('Morelia');
+  const [inputValue, setInputValue] = useState('');
+  const [animate, setAnimate] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleInput = (e) => {
+    setInputValue(e.target.value);
+  };
+
+  const handleSubmit = (e) => {
+    if (inputValue !== '') {
+      setLocation(inputValue);
+    }
+
+    const input = document.querySelector('input');
+
+    if (input.value === '') {
+      setAnimate(true);
+
+      setTimeout(() => {
+        setAnimate(false);
+      }, 500);
+    }
+
+    input.value = '';
+
+    e.preventDefault();
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    const url = `https://api.openweathermap.org/data/2.5/weather?q=${ location }&units=metric&appid=${ API_KEY }`;
+
+    axios.get(url).then(response => {
+      setTimeout(() => {
+        setData(response.data);
+        setLoading(false);
+      }, 1500);
+    }).catch((error) => {
+      setLoading(false);
+      setErrorMessage(error);
+    });
+  }, [location]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setErrorMessage('');
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [errorMessage]);
+
+  if (!data) {
+    return (
+      <div className="w-full h-screen bg-gradientBg bg-no-repeat bg-cover bg-center flex flex-col justify-center items-center">
+        <div>
+          <ImSpinner8 className="text-5xl animate-spin text-white"/>
+        </div>
+      </div>
+    );
+  }
+
+  let icon;
+
+  switch (data.weather[0].main) {
+    case 'Clouds':
+      icon = <IoMdCloudy/>;
+      break;
+    case 'Haze':
+      icon = <BsCloudHaze2Fill/>;
+      break;
+    case 'Rain':
+      icon = <IoMdRainy className="text-[#31cafb]"/>;
+      break;
+    case 'Clear':
+      icon = <IoMdSunny className="text-[#ffde33]"/>;
+      break;
+    case 'Drizzle':
+      icon = <BsCloudDrizzleFill className="text-[#31cafb]"/>;
+      break;
+    case 'Snow':
+      icon = <IoMdSnow className="text-[#31cafb]"/>;
+      break;
+    case 'Thunderstorm':
+      icon = <IoMdThunderstorm/>;
+      break;
+  }
+
+  const date = new Date();
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div
+      className="w-full h-screen bg-gradientBg bg-no-repeat bg-cover bg-center flex flex-col items-center justify-center px-4 lg:px-0">
+      {
+        errorMessage && (
+          <div className="w-full max-w-[90vw] lg:max-w-[450px] bg-[#ff208c] text-white absolute top-2 lg:top-10 p-4 capitalize rounded-md">
+            { `${ errorMessage.response.data.message }` }
+          </div>
+        )
+      }
+      { /* Form */ }
+      <form
+        className={ `${ animate ? 'animate-shake' : 'animate-none' } h-16 bg-black/30 w-full max-w-[450px] rounded-full backdrop-blur-[32px] mb-8` }>
+        <div className="h-full relative flex items-center justify-between p-2">
+          <input
+            type="text"
+            placeholder="Buscar por ciudad"
+            onChange={ handleInput }
+            className="flex-1 bg-transparent outline-none placeholder:text-white text-white text-[15px] font-light pl-6 h-full"/>
+          <button
+            onClick={ handleSubmit }
+            className="bg-[#1ab8ed] hover:bg-[#15abdd] w-20 h-12 rounded-full flex justify-center items-center transition">
+            <IoMdSearch className="text-2xl text-white"/>
+          </button>
+        </div>
+      </form>
+      { /* Card */ }
+      <div
+        className="w-full max-w-[450px] bg-black/20 min-h-[584px] text-white backdrop-blur-[32px] rounded-[32px] py-12 px-6">
+        {
+          loading ?
+            (
+              <div className="w-full h-full flex justify-center items-center">
+                <ImSpinner8 className="text-white text-5xl animate-spin"/>
+              </div>
+            ) :
+            (
+              <div>
+                { /* Card top */ }
+                <div className="flex items-center gap-x-5">
+                  { /* Icon */ }
+                  <div className="text-[87px]">{ icon }</div>
+                  <div>
+                    { /* Country name */ }
+                    <div className="text-2xl font-semibold">
+                      { data.name }, { data.sys.country }
+                    </div>
+                    { /* date */ }
+                    <div>
+                      { date.getUTCDate() }/{ date.getUTCMonth() + 1 }/{ date.getUTCFullYear() }
+                    </div>
+                  </div>
+                </div>
+                { /* Card body */ }
+                <div className="my-20">
+                  <div className="flex justify-center items-center">
+                    { /* Temp */ }
+                    <div className="text-[144px] leading-none font-light">
+                      { parseInt(data.main.temp) }
+                    </div>
+                    { /* Celsius */ }
+                    <div className="text-4xl">
+                      <TbTemperatureCelsius/>
+                    </div>
+                  </div>
+                  { /* Card bottom */ }
+                  <div className="capitalize text-center">
+                    { data.weather[0].description }
+                  </div>
+                </div>
+                { /* Card bottom */ }
+                <div className="max-w-[378px] mx-auto flex flex-col gap-y-6">
+                  <div className="flex justify-between">
+                    <div className="flex items-center gap-x-2">
+                      { /* Icon */ }
+                      <div className="text-[20px]">
+                        <BsEye/>
+                      </div>
+                      <div>
+                        Visibilidad { ' ' }
+                        <span className="ml-2">{ data.visibility / 1000 } km</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-x-2">
+                      { /* Icon */ }
+                      <div className="text-[20px]">
+                        <BsThermometer/>
+                      </div>
+                      <div className="flex">
+                        Sensación térmica
+                        <div className="flex ml-2">
+                          { parseInt(data.main.feels_like) }
+                          <TbTemperatureCelsius/>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-between">
+                    <div className="flex items-center gap-x-2">
+                      { /* Icon */ }
+                      <div className="text-[20px]">
+                        <BsWater/>
+                      </div>
+                      <div>
+                        Humedad { ' ' }
+                        <span className="ml-2">{ data.main.humidity } %</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-x-2">
+                      { /* Icon */ }
+                      <div className="text-[20px]">
+                        <BsWind/>
+                      </div>
+                      <div>
+                        Viento <span className="ml-2">{ data.wind.speed } m/s</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+        }
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    </div>
+  );
+};
 
-export default App
+export default App;
